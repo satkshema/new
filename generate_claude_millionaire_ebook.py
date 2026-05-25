@@ -2,6 +2,7 @@
 """
 Generate "The Claude AI Millionaire Blueprint" - 56-page e-book PDF
 Uses fpdf2 with high-resolution vector graphics on every page.
+Graphics are placed ONLY in designated header/footer zones on content pages.
 """
 
 import math
@@ -33,10 +34,10 @@ TEAL = (0, 200, 180)
 
 
 # ============================================================
-# DRAWING HELPER FUNCTIONS
+# DRAWING HELPER FUNCTIONS - ENHANCED HIGH-RESOLUTION
 # ============================================================
 
-def draw_gradient_rect(pdf, x, y, w, h, color1, color2, steps=40):
+def draw_gradient_rect(pdf, x, y, w, h, color1, color2, steps=60):
     """Draw a gradient rectangle from color1 (top) to color2 (bottom)."""
     step_h = h / steps
     for i in range(steps):
@@ -47,345 +48,561 @@ def draw_gradient_rect(pdf, x, y, w, h, color1, color2, steps=40):
         pdf.rect(x, y + i * step_h, w, step_h + 0.5, 'F')
 
 
+def draw_shadow_ellipse(pdf, cx, cy, rx, ry, offset=1.5):
+    """Draw a shadow behind an ellipse for depth."""
+    pdf.set_fill_color(0, 0, 0)
+    pdf.ellipse(cx - rx + offset, cy - ry + offset, 2 * rx, 2 * ry, 'F')
+
+
+
+def draw_glow(pdf, cx, cy, radius, color, layers=4):
+    """Draw concentric circles with decreasing opacity for glow effect."""
+    for i in range(layers, 0, -1):
+        factor = i / layers
+        r = int(color[0] * factor + 255 * (1 - factor))
+        g_val = int(color[1] * factor + 255 * (1 - factor))
+        b = int(color[2] * factor + 255 * (1 - factor))
+        pdf.set_fill_color(r, g_val, b)
+        gr = radius * (1 + (layers - i) * 0.25)
+        pdf.ellipse(cx - gr, cy - gr, 2 * gr, 2 * gr, 'F')
+
+
 def draw_gold_coin(pdf, cx, cy, r):
-    """Draw a detailed gold coin with shine and dollar sign."""
-    # Outer ring
-    pdf.set_fill_color(180, 140, 0)
-    pdf.set_draw_color(140, 100, 0)
-    for angle in range(0, 360, 5):
-        x = cx + r * math.cos(math.radians(angle))
-        y = cy + r * math.sin(math.radians(angle))
+    """Draw a detailed gold coin with shine, ring, and dollar sign - high res."""
+    # Shadow
+    draw_shadow_ellipse(pdf, cx, cy, r, r, 1.5)
+    # Glow
+    draw_glow(pdf, cx, cy, r * 1.1, (255, 200, 0), 3)
+    # Outer dark ring
+    pdf.set_fill_color(140, 100, 0)
+    pdf.set_draw_color(100, 70, 0)
+    pdf.set_line_width(0.6)
     pdf.ellipse(cx - r, cy - r, 2 * r, 2 * r, 'FD')
-    # Inner circle
+    # Inner gold disc
     pdf.set_fill_color(255, 215, 0)
-    pdf.ellipse(cx - r * 0.8, cy - r * 0.8, r * 1.6, r * 1.6, 'F')
-    # Highlight arc
-    pdf.set_fill_color(255, 240, 100)
-    pdf.ellipse(cx - r * 0.5, cy - r * 0.6, r * 0.8, r * 0.6, 'F')
+    pdf.ellipse(cx - r * 0.82, cy - r * 0.82, r * 1.64, r * 1.64, 'F')
+    # Highlight crescent (top-left shine)
+    pdf.set_fill_color(255, 245, 120)
+    pdf.ellipse(cx - r * 0.55, cy - r * 0.6, r * 0.9, r * 0.7, 'F')
+    # Inner ring detail
+    pdf.set_draw_color(180, 140, 0)
+    pdf.set_line_width(0.4)
+    pdf.ellipse(cx - r * 0.65, cy - r * 0.65, r * 1.3, r * 1.3, 'D')
+    # Radial ridges (edge detail) - 36 points
+    pdf.set_draw_color(160, 120, 0)
+    pdf.set_line_width(0.2)
+    for i in range(36):
+        angle = math.radians(i * 10)
+        x1 = cx + r * 0.88 * math.cos(angle)
+        y1 = cy + r * 0.88 * math.sin(angle)
+        x2 = cx + r * 0.96 * math.cos(angle)
+        y2 = cy + r * 0.96 * math.sin(angle)
+        pdf.line(x1, y1, x2, y2)
     # Dollar sign
-    pdf.set_font('Helvetica', 'B', max(6, int(r * 1.2)))
-    pdf.set_text_color(140, 100, 0)
+    pdf.set_font('Helvetica', 'B', max(7, int(r * 1.3)))
+    pdf.set_text_color(120, 80, 0)
     tw = pdf.get_string_width('$')
     pdf.text(cx - tw / 2, cy + r * 0.35, '$')
 
 
 
 def draw_brain_ai(pdf, cx, cy, size):
-    """Draw an AI brain with neural network connections."""
+    """Draw a large, complex AI brain with many neural connections - high res."""
     r = size / 2
-    # Brain outline (two hemispheres)
-    pdf.set_fill_color(140, 80, 255)
-    pdf.set_draw_color(100, 40, 200)
-    pdf.ellipse(cx - r, cy - r * 0.8, r * 1.0, r * 1.6, 'FD')
-    pdf.ellipse(cx, cy - r * 0.8, r * 1.0, r * 1.6, 'FD')
-    # Neural nodes
-    pdf.set_fill_color(0, 220, 255)
+    # Shadow
+    draw_shadow_ellipse(pdf, cx, cy, r * 1.0, r * 0.85, 2)
+    # Glow effect
+    draw_glow(pdf, cx, cy, r * 0.9, (140, 80, 255), 4)
+    # Brain outline - left hemisphere (smooth with 36 pts)
+    pdf.set_fill_color(120, 60, 220)
+    pdf.set_draw_color(80, 30, 180)
+    pdf.set_line_width(0.8)
+    pdf.ellipse(cx - r * 1.0, cy - r * 0.85, r * 1.05, r * 1.7, 'FD')
+    # Right hemisphere
+    pdf.set_fill_color(140, 80, 240)
+    pdf.ellipse(cx - r * 0.05, cy - r * 0.85, r * 1.05, r * 1.7, 'FD')
+    # Brain folds (sulci) - curved lines
+    pdf.set_draw_color(100, 50, 200)
+    pdf.set_line_width(0.5)
+    for i in range(5):
+        offset_y = -r * 0.5 + i * r * 0.25
+        pdf.line(cx - r * 0.6, cy + offset_y, cx - r * 0.1, cy + offset_y + r * 0.1)
+        pdf.line(cx + r * 0.1, cy + offset_y, cx + r * 0.6, cy + offset_y - r * 0.05)
+    # Neural nodes - 16 nodes arranged in layers
+    pdf.set_fill_color(0, 240, 255)
     nodes = []
+    # Inner ring - 8 nodes
     for i in range(8):
         angle = i * 45
-        nx = cx + r * 0.5 * math.cos(math.radians(angle))
-        ny = cy + r * 0.5 * math.sin(math.radians(angle))
+        nx = cx + r * 0.35 * math.cos(math.radians(angle))
+        ny = cy + r * 0.35 * math.sin(math.radians(angle))
         nodes.append((nx, ny))
-        pdf.ellipse(nx - 1.5, ny - 1.5, 3, 3, 'F')
-    # Connections
+    # Outer ring - 12 nodes
+    for i in range(12):
+        angle = i * 30 + 15
+        nx = cx + r * 0.65 * math.cos(math.radians(angle))
+        ny = cy + r * 0.6 * math.sin(math.radians(angle))
+        nodes.append((nx, ny))
+    # Draw connections first (behind nodes)
     pdf.set_draw_color(0, 200, 255)
-    pdf.set_line_width(0.3)
+    pdf.set_line_width(0.25)
     for i in range(len(nodes)):
-        for j in range(i + 1, min(i + 3, len(nodes))):
-            pdf.line(nodes[i][0], nodes[i][1], nodes[j][0], nodes[j][1])
-    # Center glow
+        for j in range(i + 1, len(nodes)):
+            dist = math.sqrt((nodes[i][0]-nodes[j][0])**2 + (nodes[i][1]-nodes[j][1])**2)
+            if dist < r * 0.6:
+                pdf.line(nodes[i][0], nodes[i][1], nodes[j][0], nodes[j][1])
+    # Draw nodes
+    for i, (nx, ny) in enumerate(nodes):
+        nr = 2.0 if i < 8 else 1.5
+        pdf.set_fill_color(0, 220 + (i % 3) * 10, 255)
+        pdf.ellipse(nx - nr, ny - nr, 2 * nr, 2 * nr, 'F')
+    # Center core glow
     pdf.set_fill_color(255, 255, 255)
-    pdf.ellipse(cx - 2, cy - 2, 4, 4, 'F')
+    pdf.ellipse(cx - 3, cy - 3, 6, 6, 'F')
+    pdf.set_fill_color(200, 230, 255)
+    pdf.ellipse(cx - 5, cy - 5, 10, 10, 'F')
+    pdf.set_fill_color(255, 255, 255)
+    pdf.ellipse(cx - 2.5, cy - 2.5, 5, 5, 'F')
+
 
 
 def draw_rocket(pdf, cx, cy, size):
-    """Draw a rocket ship launching upward."""
+    """Draw a detailed rocket ship with flame, panels, and shadow."""
     s = size
-    # Flame
-    pdf.set_fill_color(255, 100, 0)
-    pdf.set_draw_color(255, 50, 0)
-    pts = [(cx, cy + s * 0.8), (cx - s * 0.15, cy + s * 0.5),
-           (cx + s * 0.15, cy + s * 0.5)]
-    # Draw flame triangle
-    with pdf.new_path(cx, cy + s * 0.8) as path:
-        path.line_to(cx - s * 0.15, cy + s * 0.5)
-        path.line_to(cx + s * 0.15, cy + s * 0.5)
-        path.close()
-    # Body
-    pdf.set_fill_color(220, 230, 255)
+    # Shadow
+    pdf.set_fill_color(0, 0, 0)
+    pdf.ellipse(cx - s * 0.15 + 2, cy - s * 0.4 + 2, s * 0.3, s * 0.9, 'F')
+    # Flame - multi-layer for realism
+    # Outer flame (orange)
+    pdf.set_fill_color(255, 80, 0)
+    pdf.ellipse(cx - s * 0.12, cy + s * 0.35, s * 0.24, s * 0.5, 'F')
+    # Inner flame (yellow)
+    pdf.set_fill_color(255, 200, 0)
+    pdf.ellipse(cx - s * 0.07, cy + s * 0.4, s * 0.14, s * 0.35, 'F')
+    # Core flame (white-yellow)
+    pdf.set_fill_color(255, 255, 200)
+    pdf.ellipse(cx - s * 0.03, cy + s * 0.42, s * 0.06, s * 0.2, 'F')
+    # Body - main fuselage
+    pdf.set_fill_color(220, 230, 250)
     pdf.set_draw_color(100, 120, 200)
-    pdf.ellipse(cx - s * 0.12, cy - s * 0.5, s * 0.24, s * 1.0, 'FD')
+    pdf.set_line_width(0.7)
+    pdf.ellipse(cx - s * 0.13, cy - s * 0.5, s * 0.26, s * 1.0, 'FD')
+    # Body stripe
+    pdf.set_fill_color(0, 100, 200)
+    pdf.rect(cx - s * 0.13, cy - s * 0.05, s * 0.26, s * 0.06, 'F')
     # Nose cone
-    pdf.set_fill_color(255, 80, 80)
-    pdf.ellipse(cx - s * 0.08, cy - s * 0.55, s * 0.16, s * 0.2, 'F')
-    # Window
-    pdf.set_fill_color(0, 180, 255)
-    pdf.ellipse(cx - s * 0.06, cy - s * 0.15, s * 0.12, s * 0.12, 'F')
-    # Fins
-    pdf.set_fill_color(255, 80, 80)
-    pdf.ellipse(cx - s * 0.2, cy + s * 0.25, s * 0.1, s * 0.2, 'F')
-    pdf.ellipse(cx + s * 0.1, cy + s * 0.25, s * 0.1, s * 0.2, 'F')
+    pdf.set_fill_color(220, 50, 50)
+    pdf.set_draw_color(180, 30, 30)
+    pdf.set_line_width(0.5)
+    pdf.ellipse(cx - s * 0.09, cy - s * 0.58, s * 0.18, s * 0.22, 'FD')
+    # Window - with glow
+    pdf.set_fill_color(100, 200, 255)
+    pdf.ellipse(cx - s * 0.07, cy - s * 0.2, s * 0.14, s * 0.14, 'F')
+    pdf.set_fill_color(200, 240, 255)
+    pdf.ellipse(cx - s * 0.04, cy - s * 0.22, s * 0.06, s * 0.06, 'F')
+    # Fins - left and right
+    pdf.set_fill_color(220, 50, 50)
+    pdf.ellipse(cx - s * 0.25, cy + s * 0.2, s * 0.14, s * 0.25, 'F')
+    pdf.ellipse(cx + s * 0.11, cy + s * 0.2, s * 0.14, s * 0.25, 'F')
+    # Exhaust nozzle
+    pdf.set_fill_color(80, 80, 100)
+    pdf.ellipse(cx - s * 0.08, cy + s * 0.38, s * 0.16, s * 0.08, 'F')
 
 
 
 def draw_chart_up(pdf, cx, cy, size):
-    """Draw an upward trending chart with bars."""
+    """Draw a professional upward chart with grid, axes, and labels."""
     s = size
+    # Shadow panel
+    pdf.set_fill_color(5, 10, 30)
+    pdf.rect(cx - s * 0.5 + 1.5, cy - s * 0.4 + 1.5, s, s * 0.8, 'F')
     # Background panel
-    pdf.set_fill_color(20, 30, 60)
-    pdf.set_draw_color(0, 150, 255)
+    pdf.set_fill_color(15, 22, 50)
+    pdf.set_draw_color(0, 120, 220)
+    pdf.set_line_width(0.7)
     pdf.rect(cx - s * 0.5, cy - s * 0.4, s, s * 0.8, 'FD')
-    # Grid lines
-    pdf.set_draw_color(40, 60, 100)
+    # Grid lines - horizontal
+    pdf.set_draw_color(30, 50, 90)
     pdf.set_line_width(0.15)
-    for i in range(5):
-        yy = cy - s * 0.3 + i * s * 0.15
-        pdf.line(cx - s * 0.4, yy, cx + s * 0.4, yy)
-    # Bars (ascending)
-    colors = [(0, 150, 255), (0, 180, 200), (0, 210, 150), (0, 230, 100), (0, 255, 80)]
-    bar_w = s * 0.12
-    heights = [0.2, 0.35, 0.3, 0.5, 0.65]
+    for i in range(6):
+        yy = cy - s * 0.32 + i * s * 0.12
+        pdf.line(cx - s * 0.42, yy, cx + s * 0.42, yy)
+    # Grid lines - vertical
+    for i in range(6):
+        xx = cx - s * 0.42 + i * s * 0.17
+        pdf.line(xx, cy - s * 0.32, xx, cy + s * 0.32)
+    # Axis labels
+    pdf.set_font('Helvetica', '', 4)
+    pdf.set_text_color(100, 150, 200)
+    labels_y = ['$0', '$20K', '$40K', '$60K', '$80K', '$100K']
+    for i, label in enumerate(labels_y):
+        yy = cy + s * 0.28 - i * s * 0.12
+        pdf.text(cx - s * 0.48, yy + 1, label)
+    # Bars (ascending) with gradients
+    colors = [(0, 100, 255), (0, 150, 230), (0, 180, 180), (0, 210, 130), (0, 240, 80)]
+    bar_w = s * 0.11
+    heights = [0.18, 0.32, 0.28, 0.48, 0.62]
     for i, h in enumerate(heights):
-        bx = cx - s * 0.38 + i * s * 0.18
+        bx = cx - s * 0.35 + i * s * 0.17
         by = cy + s * 0.3 - h * s
+        # Bar shadow
+        pdf.set_fill_color(0, 0, 0)
+        pdf.rect(bx + 1, by + 1, bar_w, h * s, 'F')
+        # Bar body
         pdf.set_fill_color(*colors[i])
         pdf.rect(bx, by, bar_w, h * s, 'F')
-    # Trend line
+        # Bar highlight
+        pdf.set_fill_color(min(255, colors[i][0]+60), min(255, colors[i][1]+60), min(255, colors[i][2]+60))
+        pdf.rect(bx, by, bar_w * 0.3, h * s, 'F')
+    # Trend line - thick gold
     pdf.set_draw_color(255, 215, 0)
-    pdf.set_line_width(0.6)
-    points = [(cx - s * 0.35, cy + s * 0.15), (cx - s * 0.17, cy),
-              (cx, cy + s * 0.05), (cx + s * 0.17, cy - s * 0.15),
-              (cx + s * 0.35, cy - s * 0.3)]
+    pdf.set_line_width(0.9)
+    points = [(cx - s * 0.35, cy + s * 0.12), (cx - s * 0.18, cy - s * 0.02),
+              (cx, cy + s * 0.02), (cx + s * 0.17, cy - s * 0.18),
+              (cx + s * 0.35, cy - s * 0.32)]
     for i in range(len(points) - 1):
         pdf.line(points[i][0], points[i][1], points[i + 1][0], points[i + 1][1])
+    # Trend line dots
+    pdf.set_fill_color(255, 255, 255)
+    for px, py in points:
+        pdf.ellipse(px - 1.2, py - 1.2, 2.4, 2.4, 'F')
+
 
 
 def draw_network(pdf, cx, cy, size):
-    """Draw a network/connection diagram."""
+    """Draw a detailed network/connection diagram with glow nodes."""
     s = size
+    # Background glow
+    draw_glow(pdf, cx, cy, s * 0.35, (0, 100, 200), 3)
     nodes = []
-    for i in range(7):
-        angle = i * (360 / 7)
-        nx = cx + s * 0.4 * math.cos(math.radians(angle))
-        ny = cy + s * 0.4 * math.sin(math.radians(angle))
+    # Outer ring - 10 nodes
+    for i in range(10):
+        angle = i * 36
+        nx = cx + s * 0.42 * math.cos(math.radians(angle))
+        ny = cy + s * 0.42 * math.sin(math.radians(angle))
+        nodes.append((nx, ny))
+    # Inner ring - 5 nodes
+    for i in range(5):
+        angle = i * 72 + 18
+        nx = cx + s * 0.2 * math.cos(math.radians(angle))
+        ny = cy + s * 0.2 * math.sin(math.radians(angle))
         nodes.append((nx, ny))
     # Draw connections
-    pdf.set_draw_color(0, 150, 255)
-    pdf.set_line_width(0.3)
+    pdf.set_draw_color(0, 120, 220)
+    pdf.set_line_width(0.25)
     for i in range(len(nodes)):
         for j in range(i + 1, len(nodes)):
-            if (i + j) % 2 == 0:
+            dist = math.sqrt((nodes[i][0]-nodes[j][0])**2 + (nodes[i][1]-nodes[j][1])**2)
+            if dist < s * 0.45:
                 pdf.line(nodes[i][0], nodes[i][1], nodes[j][0], nodes[j][1])
-    # Draw nodes
-    for i, (nx, ny) in enumerate(nodes):
-        pdf.set_fill_color(0, 180 + i * 10, 255 - i * 20)
-        pdf.ellipse(nx - 3, ny - 3, 6, 6, 'F')
-    # Center hub
-    pdf.set_fill_color(255, 215, 0)
-    pdf.ellipse(cx - 5, cy - 5, 10, 10, 'F')
-    # Hub connections
+    # Hub connections (gold)
     pdf.set_draw_color(255, 215, 0)
+    pdf.set_line_width(0.4)
     for nx, ny in nodes:
         pdf.line(cx, cy, nx, ny)
+    # Draw nodes with glow
+    for i, (nx, ny) in enumerate(nodes):
+        pdf.set_fill_color(0, 160 + (i * 8) % 80, 255 - (i * 12) % 60)
+        pdf.ellipse(nx - 3, ny - 3, 6, 6, 'F')
+        pdf.set_fill_color(200, 240, 255)
+        pdf.ellipse(nx - 1.2, ny - 1.2, 2.4, 2.4, 'F')
+    # Center hub - large gold node
+    pdf.set_fill_color(200, 170, 0)
+    pdf.ellipse(cx - 6, cy - 6, 12, 12, 'F')
+    pdf.set_fill_color(255, 215, 0)
+    pdf.ellipse(cx - 5, cy - 5, 10, 10, 'F')
+    pdf.set_fill_color(255, 245, 150)
+    pdf.ellipse(cx - 2.5, cy - 2.5, 5, 5, 'F')
 
 
 
 def draw_gear_system(pdf, cx, cy, size):
-    """Draw interlocking gears for automation."""
+    """Draw interlocking gears with detail teeth and depth."""
     s = size
-    def draw_single_gear(gx, gy, gr, teeth=8):
-        pdf.set_fill_color(80, 100, 140)
-        pdf.set_draw_color(60, 80, 120)
+    def draw_single_gear(gx, gy, gr, teeth=12):
+        # Shadow
+        pdf.set_fill_color(20, 25, 45)
+        pdf.ellipse(gx - gr + 1.5, gy - gr + 1.5, 2 * gr, 2 * gr, 'F')
+        # Main gear body
+        pdf.set_fill_color(70, 90, 130)
+        pdf.set_draw_color(50, 70, 110)
+        pdf.set_line_width(0.6)
         pdf.ellipse(gx - gr, gy - gr, 2 * gr, 2 * gr, 'FD')
-        # Teeth
+        # Teeth - 36 point precision
         for i in range(teeth):
-            angle = i * (360 / teeth)
-            tx = gx + (gr + 2) * math.cos(math.radians(angle))
-            ty = gy + (gr + 2) * math.sin(math.radians(angle))
-            pdf.set_fill_color(100, 120, 160)
-            pdf.ellipse(tx - 2, ty - 2, 4, 4, 'F')
-        # Center hole
-        pdf.set_fill_color(30, 40, 70)
-        pdf.ellipse(gx - gr * 0.3, gy - gr * 0.3, gr * 0.6, gr * 0.6, 'F')
-    draw_single_gear(cx - s * 0.2, cy, s * 0.25, 8)
-    draw_single_gear(cx + s * 0.22, cy - s * 0.15, s * 0.18, 6)
-    draw_single_gear(cx + s * 0.15, cy + s * 0.25, s * 0.15, 6)
+            angle = math.radians(i * (360 / teeth))
+            tx = gx + (gr + 2.5) * math.cos(angle)
+            ty = gy + (gr + 2.5) * math.sin(angle)
+            pdf.set_fill_color(90, 110, 150)
+            pdf.ellipse(tx - 2.2, ty - 2.2, 4.4, 4.4, 'F')
+        # Inner ring
+        pdf.set_draw_color(100, 130, 170)
+        pdf.set_line_width(0.4)
+        pdf.ellipse(gx - gr * 0.6, gy - gr * 0.6, gr * 1.2, gr * 1.2, 'D')
+        # Spokes
+        pdf.set_draw_color(60, 80, 120)
+        pdf.set_line_width(0.5)
+        for i in range(6):
+            angle = math.radians(i * 60)
+            pdf.line(gx, gy, gx + gr * 0.55 * math.cos(angle), gy + gr * 0.55 * math.sin(angle))
+        # Center axle
+        pdf.set_fill_color(30, 40, 65)
+        pdf.ellipse(gx - gr * 0.25, gy - gr * 0.25, gr * 0.5, gr * 0.5, 'F')
+        # Axle highlight
+        pdf.set_fill_color(50, 60, 90)
+        pdf.ellipse(gx - gr * 0.12, gy - gr * 0.15, gr * 0.2, gr * 0.2, 'F')
+    draw_single_gear(cx - s * 0.22, cy, s * 0.26, 12)
+    draw_single_gear(cx + s * 0.24, cy - s * 0.15, s * 0.19, 10)
+    draw_single_gear(cx + s * 0.16, cy + s * 0.27, s * 0.16, 8)
 
 
 def draw_lightbulb(pdf, cx, cy, size):
-    """Draw a lightbulb representing ideas."""
+    """Draw a detailed lightbulb with rays and glow."""
     s = size
-    # Glow effect
-    pdf.set_fill_color(255, 250, 150)
-    pdf.ellipse(cx - s * 0.35, cy - s * 0.4, s * 0.7, s * 0.7, 'F')
-    # Bulb
+    # Glow layers
+    draw_glow(pdf, cx, cy - s * 0.1, s * 0.4, (255, 230, 50), 5)
+    # Bulb body
     pdf.set_fill_color(255, 240, 50)
     pdf.set_draw_color(200, 180, 0)
-    pdf.ellipse(cx - s * 0.25, cy - s * 0.35, s * 0.5, s * 0.55, 'FD')
-    # Base
-    pdf.set_fill_color(160, 160, 170)
-    pdf.rect(cx - s * 0.1, cy + s * 0.15, s * 0.2, s * 0.15, 'F')
-    # Filament lines
-    pdf.set_draw_color(200, 150, 0)
+    pdf.set_line_width(0.6)
+    pdf.ellipse(cx - s * 0.28, cy - s * 0.38, s * 0.56, s * 0.6, 'FD')
+    # Highlight
+    pdf.set_fill_color(255, 255, 180)
+    pdf.ellipse(cx - s * 0.15, cy - s * 0.35, s * 0.2, s * 0.25, 'F')
+    # Base/screw
+    pdf.set_fill_color(160, 160, 175)
+    pdf.rect(cx - s * 0.1, cy + s * 0.18, s * 0.2, s * 0.14, 'F')
+    # Base ridges
+    pdf.set_draw_color(120, 120, 135)
     pdf.set_line_width(0.4)
-    pdf.line(cx - s * 0.05, cy, cx, cy - s * 0.1)
-    pdf.line(cx, cy - s * 0.1, cx + s * 0.05, cy)
-    # Rays
-    pdf.set_draw_color(255, 200, 0)
+    for i in range(4):
+        yy = cy + s * 0.19 + i * s * 0.03
+        pdf.line(cx - s * 0.1, yy, cx + s * 0.1, yy)
+    # Filament
+    pdf.set_draw_color(200, 150, 0)
     pdf.set_line_width(0.5)
-    for i in range(8):
-        angle = i * 45
-        x1 = cx + s * 0.32 * math.cos(math.radians(angle))
-        y1 = cy - s * 0.05 + s * 0.32 * math.sin(math.radians(angle))
-        x2 = cx + s * 0.42 * math.cos(math.radians(angle))
-        y2 = cy - s * 0.05 + s * 0.42 * math.sin(math.radians(angle))
+    pdf.line(cx - s * 0.06, cy + s * 0.05, cx - s * 0.02, cy - s * 0.08)
+    pdf.line(cx - s * 0.02, cy - s * 0.08, cx + s * 0.02, cy + s * 0.02)
+    pdf.line(cx + s * 0.02, cy + s * 0.02, cx + s * 0.06, cy - s * 0.1)
+    # Rays - 12 rays
+    pdf.set_draw_color(255, 200, 0)
+    pdf.set_line_width(0.6)
+    for i in range(12):
+        angle = math.radians(i * 30)
+        x1 = cx + s * 0.35 * math.cos(angle)
+        y1 = cy - s * 0.08 + s * 0.35 * math.sin(angle)
+        x2 = cx + s * 0.48 * math.cos(angle)
+        y2 = cy - s * 0.08 + s * 0.48 * math.sin(angle)
         pdf.line(x1, y1, x2, y2)
 
 
 
 def draw_diamond(pdf, cx, cy, size):
-    """Draw a sparkling diamond."""
+    """Draw a sparkling diamond with facets and glow."""
     s = size
     # Glow
-    pdf.set_fill_color(200, 230, 255)
-    pdf.ellipse(cx - s * 0.4, cy - s * 0.4, s * 0.8, s * 0.8, 'F')
-    # Diamond body using lines
-    pdf.set_fill_color(100, 200, 255)
+    draw_glow(pdf, cx, cy, s * 0.35, (100, 200, 255), 4)
+    # Diamond shape using lines - thick confident strokes
     pdf.set_draw_color(50, 150, 255)
-    pdf.set_line_width(0.5)
-    # Top facet
-    top = cy - s * 0.35
+    pdf.set_line_width(0.8)
+    top = cy - s * 0.38
     mid = cy - s * 0.05
-    bot = cy + s * 0.35
-    left = cx - s * 0.3
-    right = cx + s * 0.3
-    # Draw diamond shape with lines
+    bot = cy + s * 0.38
+    left = cx - s * 0.32
+    right = cx + s * 0.32
+    # Outline
     pdf.line(cx, top, right, mid)
     pdf.line(right, mid, cx, bot)
     pdf.line(cx, bot, left, mid)
     pdf.line(left, mid, cx, top)
     # Inner facets
-    pdf.set_draw_color(150, 220, 255)
+    pdf.set_draw_color(100, 200, 255)
+    pdf.set_line_width(0.4)
     pdf.line(cx, top, cx, bot)
     pdf.line(left, mid, right, mid)
+    pdf.line(cx, top, left + s * 0.1, mid)
+    pdf.line(cx, top, right - s * 0.1, mid)
+    pdf.line(cx, bot, left + s * 0.1, mid)
+    pdf.line(cx, bot, right - s * 0.1, mid)
+    # Fill center facets with semi-transparent blue
+    pdf.set_fill_color(150, 220, 255)
+    pdf.ellipse(cx - s * 0.08, cy - s * 0.08, s * 0.16, s * 0.16, 'F')
     # Sparkles
     pdf.set_fill_color(255, 255, 255)
-    sparkle_positions = [(cx + s * 0.3, cy - s * 0.3), (cx - s * 0.25, cy - s * 0.25),
-                         (cx + s * 0.2, cy + s * 0.1)]
+    sparkle_positions = [(cx + s * 0.28, cy - s * 0.3), (cx - s * 0.25, cy - s * 0.2),
+                         (cx + s * 0.18, cy + s * 0.15), (cx - s * 0.3, cy + s * 0.1)]
     for sx, sy in sparkle_positions:
-        pdf.ellipse(sx - 1, sy - 1, 2, 2, 'F')
+        pdf.ellipse(sx - 1.5, sy - 1.5, 3, 3, 'F')
+        pdf.set_draw_color(255, 255, 255)
+        pdf.set_line_width(0.3)
+        pdf.line(sx - 3, sy, sx + 3, sy)
+        pdf.line(sx, sy - 3, sx, sy + 3)
 
 
 def draw_shield(pdf, cx, cy, size):
-    """Draw a shield for security/trust."""
+    """Draw a detailed shield with glow ring and checkmark."""
     s = size
-    # Shield body
-    pdf.set_fill_color(0, 100, 200)
-    pdf.set_draw_color(0, 70, 150)
-    pdf.ellipse(cx - s * 0.3, cy - s * 0.4, s * 0.6, s * 0.65, 'FD')
-    # Bottom point
-    pdf.set_fill_color(0, 100, 200)
-    pdf.rect(cx - s * 0.3, cy, s * 0.6, s * 0.2, 'F')
-    # Checkmark
-    pdf.set_draw_color(255, 255, 255)
-    pdf.set_line_width(1.0)
-    pdf.line(cx - s * 0.12, cy - s * 0.05, cx - s * 0.02, cy + s * 0.08)
-    pdf.line(cx - s * 0.02, cy + s * 0.08, cx + s * 0.15, cy - s * 0.15)
+    # Shadow
+    draw_shadow_ellipse(pdf, cx, cy - s * 0.05, s * 0.35, s * 0.4, 2)
     # Glow ring
     pdf.set_draw_color(0, 200, 255)
-    pdf.set_line_width(0.4)
-    pdf.ellipse(cx - s * 0.38, cy - s * 0.38, s * 0.76, s * 0.76, 'D')
+    pdf.set_line_width(0.8)
+    pdf.ellipse(cx - s * 0.42, cy - s * 0.45, s * 0.84, s * 0.9, 'D')
+    pdf.set_line_width(0.3)
+    pdf.ellipse(cx - s * 0.45, cy - s * 0.48, s * 0.9, s * 0.96, 'D')
+    # Shield body
+    pdf.set_fill_color(0, 80, 180)
+    pdf.set_draw_color(0, 60, 140)
+    pdf.set_line_width(0.7)
+    pdf.ellipse(cx - s * 0.32, cy - s * 0.42, s * 0.64, s * 0.7, 'FD')
+    # Lower extension
+    pdf.set_fill_color(0, 80, 180)
+    pdf.rect(cx - s * 0.32, cy + s * 0.0, s * 0.64, s * 0.18, 'F')
+    # Shield highlight
+    pdf.set_fill_color(0, 110, 220)
+    pdf.ellipse(cx - s * 0.2, cy - s * 0.35, s * 0.3, s * 0.4, 'F')
+    # Checkmark - thick white
+    pdf.set_draw_color(255, 255, 255)
+    pdf.set_line_width(1.5)
+    pdf.line(cx - s * 0.14, cy - s * 0.03, cx - s * 0.03, cy + s * 0.1)
+    pdf.line(cx - s * 0.03, cy + s * 0.1, cx + s * 0.17, cy - s * 0.15)
+
 
 
 def draw_target(pdf, cx, cy, size):
-    """Draw a target/bullseye for goals."""
+    """Draw a detailed target/bullseye with arrow and shadow."""
     s = size
-    rings = [(s * 0.45, (220, 50, 50)), (s * 0.35, (255, 255, 255)),
-             (s * 0.25, (220, 50, 50)), (s * 0.15, (255, 255, 255)),
-             (s * 0.08, (220, 50, 50))]
+    # Shadow
+    draw_shadow_ellipse(pdf, cx, cy, s * 0.45, s * 0.45, 2)
+    # Rings with thick borders
+    rings = [(s * 0.45, (180, 30, 30)), (s * 0.36, (255, 255, 255)),
+             (s * 0.28, (220, 40, 40)), (s * 0.20, (255, 255, 255)),
+             (s * 0.12, (200, 30, 30)), (s * 0.06, (255, 50, 50))]
     for radius, color in rings:
         pdf.set_fill_color(*color)
-        pdf.ellipse(cx - radius, cy - radius, 2 * radius, 2 * radius, 'F')
-    # Arrow
-    pdf.set_draw_color(50, 50, 50)
-    pdf.set_line_width(0.7)
-    pdf.line(cx - s * 0.5, cy + s * 0.3, cx, cy)
+        pdf.set_draw_color(150, 20, 20)
+        pdf.set_line_width(0.3)
+        pdf.ellipse(cx - radius, cy - radius, 2 * radius, 2 * radius, 'FD')
+    # Arrow shaft
+    pdf.set_draw_color(40, 40, 50)
+    pdf.set_line_width(1.0)
+    pdf.line(cx - s * 0.55, cy + s * 0.35, cx, cy)
     # Arrow head
-    pdf.set_fill_color(50, 50, 50)
-    pdf.ellipse(cx - 2, cy - 2, 4, 4, 'F')
-
+    pdf.set_fill_color(40, 40, 50)
+    pdf.ellipse(cx - 2.5, cy - 2.5, 5, 5, 'F')
+    # Arrow fletching
+    pdf.set_fill_color(220, 50, 50)
+    pdf.ellipse(cx - s * 0.52, cy + s * 0.3, s * 0.08, s * 0.04, 'F')
+    pdf.ellipse(cx - s * 0.5, cy + s * 0.33, s * 0.08, s * 0.04, 'F')
 
 
 def draw_laptop(pdf, cx, cy, size):
-    """Draw a laptop with code on screen."""
+    """Draw a detailed laptop with code on screen."""
     s = size
-    # Screen
-    pdf.set_fill_color(20, 25, 50)
-    pdf.set_draw_color(80, 80, 100)
-    pdf.rect(cx - s * 0.35, cy - s * 0.35, s * 0.7, s * 0.5, 'FD')
-    # Code lines on screen
-    colors = [(0, 255, 150), (0, 180, 255), (255, 200, 0), (200, 100, 255)]
-    for i in range(4):
-        pdf.set_fill_color(*colors[i])
-        w = s * (0.2 + (i % 3) * 0.12)
-        pdf.rect(cx - s * 0.28, cy - s * 0.25 + i * s * 0.1, w, s * 0.04, 'F')
-    # Base/keyboard
-    pdf.set_fill_color(60, 65, 80)
-    pdf.rect(cx - s * 0.4, cy + s * 0.15, s * 0.8, s * 0.08, 'F')
-    # Keyboard dots
-    pdf.set_fill_color(90, 95, 110)
-    for i in range(8):
-        for j in range(2):
-            pdf.rect(cx - s * 0.3 + i * s * 0.08, cy + s * 0.16 + j * s * 0.03, s * 0.05, s * 0.02, 'F')
+    # Shadow
+    pdf.set_fill_color(0, 0, 0)
+    pdf.rect(cx - s * 0.38 + 2, cy - s * 0.33 + 2, s * 0.76, s * 0.56, 'F')
+    # Screen bezel
+    pdf.set_fill_color(30, 32, 45)
+    pdf.set_draw_color(60, 60, 80)
+    pdf.set_line_width(0.7)
+    pdf.rect(cx - s * 0.38, cy - s * 0.38, s * 0.76, s * 0.55, 'FD')
+    # Screen interior
+    pdf.set_fill_color(18, 20, 40)
+    pdf.rect(cx - s * 0.33, cy - s * 0.33, s * 0.66, s * 0.45, 'F')
+    # Code lines on screen - more detail
+    code_colors = [(0, 255, 150), (0, 180, 255), (255, 200, 0), (200, 100, 255),
+                   (255, 100, 100), (0, 255, 200)]
+    for i in range(6):
+        pdf.set_fill_color(*code_colors[i])
+        w = s * (0.15 + ((i * 7 + 3) % 5) * 0.08)
+        indent = s * 0.02 * (i % 3)
+        pdf.rect(cx - s * 0.28 + indent, cy - s * 0.28 + i * s * 0.07, w, s * 0.03, 'F')
+    # Line numbers
+    pdf.set_fill_color(80, 80, 120)
+    for i in range(6):
+        pdf.rect(cx - s * 0.32, cy - s * 0.28 + i * s * 0.07, s * 0.03, s * 0.03, 'F')
+    # Keyboard base
+    pdf.set_fill_color(55, 58, 72)
+    pdf.set_draw_color(70, 72, 85)
+    pdf.rect(cx - s * 0.42, cy + s * 0.17, s * 0.84, s * 0.1, 'FD')
+    # Keyboard keys
+    pdf.set_fill_color(75, 78, 95)
+    for i in range(10):
+        for j in range(3):
+            pdf.rect(cx - s * 0.35 + i * s * 0.075, cy + s * 0.18 + j * s * 0.028,
+                     s * 0.06, s * 0.02, 'F')
+    # Touchpad
+    pdf.set_fill_color(65, 68, 82)
+    pdf.rect(cx - s * 0.1, cy + s * 0.22, s * 0.2, s * 0.04, 'F')
+
 
 
 def draw_money_stack(pdf, cx, cy, size):
-    """Draw a stack of money/bills."""
+    """Draw a detailed stack of money with coins on top."""
     s = size
+    # Shadow
+    pdf.set_fill_color(0, 0, 0)
+    pdf.rect(cx - s * 0.32 + 2, cy - s * 0.1 + 2, s * 0.64, s * 0.35, 'F')
     # Bills stacked
-    for i in range(5):
-        offset = i * 3
-        # Bill shadow
-        pdf.set_fill_color(0, 100 + i * 20, 0)
-        pdf.rect(cx - s * 0.3 + 1, cy + s * 0.2 - offset + 1, s * 0.6, s * 0.12, 'F')
-        # Bill
-        pdf.set_fill_color(50, 160 + i * 15, 50)
-        pdf.set_draw_color(30, 100, 30)
-        pdf.rect(cx - s * 0.3, cy + s * 0.2 - offset, s * 0.6, s * 0.12, 'FD')
+    for i in range(6):
+        offset = i * 3.5
+        # Bill body
+        pdf.set_fill_color(40, 140 + i * 15, 40)
+        pdf.set_draw_color(25, 90, 25)
+        pdf.set_line_width(0.4)
+        pdf.rect(cx - s * 0.3, cy + s * 0.2 - offset, s * 0.6, s * 0.11, 'FD')
+        # Bill detail lines
+        pdf.set_draw_color(60, 180 + i * 10, 60)
+        pdf.set_line_width(0.2)
+        pdf.rect(cx - s * 0.25, cy + s * 0.22 - offset, s * 0.12, s * 0.06, 'D')
         # Dollar symbol on bill
-        pdf.set_font('Helvetica', 'B', 6)
-        pdf.set_text_color(200, 255, 200)
-        pdf.text(cx - 2, cy + s * 0.28 - offset, '$')
-    # Floating coins on top
-    draw_gold_coin(pdf, cx - s * 0.15, cy - s * 0.15, s * 0.1)
-    draw_gold_coin(pdf, cx + s * 0.15, cy - s * 0.2, s * 0.08)
+        pdf.set_font('Helvetica', 'B', 5)
+        pdf.set_text_color(180, 240, 180)
+        pdf.text(cx - 1.5, cy + s * 0.27 - offset, '$')
+    # Floating coins
+    draw_gold_coin(pdf, cx - s * 0.18, cy - s * 0.18, s * 0.1)
+    draw_gold_coin(pdf, cx + s * 0.15, cy - s * 0.22, s * 0.08)
+    draw_gold_coin(pdf, cx + s * 0.02, cy - s * 0.28, s * 0.07)
 
 
 def draw_page_decoration(pdf, page_num):
-    """Add subtle decorative elements to page borders."""
-    # Top accent line
+    """Add professional decorative elements to page borders - header/footer only."""
+    # Top accent line with gradient effect
     pdf.set_draw_color(*ACCENT_BLUE)
-    pdf.set_line_width(0.5)
+    pdf.set_line_width(0.7)
     pdf.line(MARGIN, 8, PAGE_W - MARGIN, 8)
-    # Bottom accent line with gradient dots
-    pdf.set_line_width(0.3)
-    pdf.line(MARGIN, PAGE_H - 10, PAGE_W - MARGIN, PAGE_H - 10)
-    # Corner decorations
+    pdf.set_line_width(0.2)
+    pdf.line(MARGIN, 9.5, PAGE_W - MARGIN, 9.5)
+    # Corner decorations (gold dots)
     pdf.set_fill_color(*GOLD)
     pdf.ellipse(MARGIN - 2, 6, 4, 4, 'F')
     pdf.ellipse(PAGE_W - MARGIN - 2, 6, 4, 4, 'F')
-    # Page number
+    # Bottom accent line
+    pdf.set_draw_color(*ACCENT_BLUE)
+    pdf.set_line_width(0.5)
+    pdf.line(MARGIN, PAGE_H - 10, PAGE_W - MARGIN, PAGE_H - 10)
+    # Bottom corner dots
+    pdf.set_fill_color(*GOLD)
+    pdf.ellipse(MARGIN - 1.5, PAGE_H - 11.5, 3, 3, 'F')
+    pdf.ellipse(PAGE_W - MARGIN - 1.5, PAGE_H - 11.5, 3, 3, 'F')
+    # Page number - centered in footer area
     pdf.set_font('Helvetica', '', 8)
     pdf.set_text_color(*LIGHT_GRAY)
-    pdf.text(PAGE_W / 2 - 3, PAGE_H - 12, str(page_num))
+    pdf.text(PAGE_W / 2 - 3, PAGE_H - 13, str(page_num))
 
+
+
+def draw_header_graphic(pdf, graphic_func, size=25):
+    """Draw a SINGLE centered graphic in the header area (y=0 to y=55).
+    Used on content pages where text starts below y=60."""
+    graphic_func(pdf, PAGE_W - 38, 38, size)
 
 
 def draw_prompt_box(pdf, y_start, title, prompt_text, color=ACCENT_BLUE):
     """Draw a formatted prompt example box with dark background."""
     box_x = MARGIN + 5
     box_w = CONTENT_W - 10
-    # Calculate height based on text
     lines = prompt_text.split('\n')
     box_h = 12 + len(lines) * 4.5 + 8
     # Dark background
@@ -396,10 +613,13 @@ def draw_prompt_box(pdf, y_start, title, prompt_text, color=ACCENT_BLUE):
     # Title bar
     pdf.set_fill_color(color[0] // 3, color[1] // 3, color[2] // 3)
     pdf.rect(box_x, y_start, box_w, 10, 'F')
+    # Left accent strip
+    pdf.set_fill_color(*color)
+    pdf.rect(box_x, y_start, 2, box_h, 'F')
     # Title text
     pdf.set_font('Helvetica', 'B', 8)
     pdf.set_text_color(*color)
-    pdf.text(box_x + 4, y_start + 7, f"PROMPT: {title}")
+    pdf.text(box_x + 6, y_start + 7, f"PROMPT: {title}")
     # Copy indicator
     pdf.set_font('Helvetica', '', 6)
     pdf.set_text_color(150, 150, 170)
@@ -408,7 +628,7 @@ def draw_prompt_box(pdf, y_start, title, prompt_text, color=ACCENT_BLUE):
     pdf.set_font('Courier', '', 7)
     pdf.set_text_color(0, 255, 150)
     for i, line in enumerate(lines):
-        pdf.text(box_x + 6, y_start + 15 + i * 4.5, line[:85])
+        pdf.text(box_x + 8, y_start + 15 + i * 4.5, line[:85])
     return y_start + box_h + 3
 
 
@@ -417,45 +637,59 @@ def draw_case_study_box(pdf, y_start, title, revenue, description, timeline):
     box_x = MARGIN + 3
     box_w = CONTENT_W - 6
     box_h = 35
-    # Background
-    pdf.set_fill_color(15, 25, 50)
+    # Background with subtle gradient
+    pdf.set_fill_color(12, 20, 45)
     pdf.set_draw_color(*GOLD)
-    pdf.set_line_width(0.6)
+    pdf.set_line_width(0.7)
     pdf.rect(box_x, y_start, box_w, box_h, 'FD')
+    # Left gold accent
+    pdf.set_fill_color(*GOLD)
+    pdf.rect(box_x, y_start, 3, box_h, 'F')
     # Revenue badge
     pdf.set_fill_color(255, 215, 0)
-    pdf.rect(box_x + box_w - 40, y_start + 2, 38, 12, 'F')
+    pdf.rect(box_x + box_w - 42, y_start + 2, 40, 12, 'F')
     pdf.set_font('Helvetica', 'B', 8)
     pdf.set_text_color(0, 0, 0)
-    pdf.text(box_x + box_w - 38, y_start + 10, revenue)
+    pdf.text(box_x + box_w - 40, y_start + 10, revenue)
     # Title
     pdf.set_font('Helvetica', 'B', 10)
     pdf.set_text_color(*WHITE)
-    pdf.text(box_x + 5, y_start + 10, title)
+    pdf.text(box_x + 8, y_start + 10, title)
     # Timeline
     pdf.set_font('Helvetica', 'I', 7)
     pdf.set_text_color(*TEAL)
-    pdf.text(box_x + 5, y_start + 17, f"Timeline: {timeline}")
+    pdf.text(box_x + 8, y_start + 17, f"Timeline: {timeline}")
     # Description
     pdf.set_font('Helvetica', '', 7)
     pdf.set_text_color(*LIGHT_GRAY)
     desc_lines = [description[i:i+90] for i in range(0, len(description), 90)]
     for i, line in enumerate(desc_lines[:2]):
-        pdf.text(box_x + 5, y_start + 24 + i * 4, line)
+        pdf.text(box_x + 8, y_start + 24 + i * 4, line)
     return y_start + box_h + 4
 
 
 
 def add_chapter_header(pdf, chapter_num, title, subtitle="", graphic_func=None):
-    """Add a chapter header page with gradient and graphic."""
+    """Add a chapter header page (FULL GRADIENT - no body text, graphics anywhere OK)."""
     # Full page gradient background
-    draw_gradient_rect(pdf, 0, 0, PAGE_W, PAGE_H, DEEP_BLUE, DARK_BG, 60)
-    # Decorative side bar
+    draw_gradient_rect(pdf, 0, 0, PAGE_W, PAGE_H, DEEP_BLUE, DARK_BG, 80)
+    # Subtle background pattern - diagonal lines
+    pdf.set_draw_color(20, 30, 60)
+    pdf.set_line_width(0.15)
+    for i in range(0, PAGE_W + PAGE_H, 12):
+        pdf.line(min(i, PAGE_W), max(0, i - PAGE_W), max(0, i - PAGE_H), min(i, PAGE_H))
+    # Decorative side bar (gold)
     pdf.set_fill_color(*GOLD)
     pdf.rect(0, 0, 4, PAGE_H, 'F')
-    # Chapter number circle
+    # Right side thin accent
+    pdf.set_fill_color(100, 60, 200)
+    pdf.rect(PAGE_W - 2, 0, 2, PAGE_H, 'F')
+    # Chapter number circle with glow
+    draw_glow(pdf, PAGE_W / 2, 45, 18, (0, 150, 255), 3)
     pdf.set_fill_color(*ACCENT_BLUE)
-    pdf.ellipse(PAGE_W / 2 - 15, 30, 30, 30, 'F')
+    pdf.ellipse(PAGE_W / 2 - 16, 29, 32, 32, 'F')
+    pdf.set_fill_color(50, 180, 255)
+    pdf.ellipse(PAGE_W / 2 - 12, 33, 24, 24, 'F')
     pdf.set_font('Helvetica', 'B', 20)
     pdf.set_text_color(*WHITE)
     tw = pdf.get_string_width(str(chapter_num))
@@ -464,7 +698,7 @@ def add_chapter_header(pdf, chapter_num, title, subtitle="", graphic_func=None):
     pdf.set_font('Helvetica', '', 10)
     pdf.set_text_color(*GOLD)
     tw = pdf.get_string_width('CHAPTER')
-    pdf.text(PAGE_W / 2 - tw / 2, 25, 'CHAPTER')
+    pdf.text(PAGE_W / 2 - tw / 2, 24, 'CHAPTER')
     # Title
     pdf.set_font('Helvetica', 'B', 22)
     pdf.set_text_color(*WHITE)
@@ -472,23 +706,26 @@ def add_chapter_header(pdf, chapter_num, title, subtitle="", graphic_func=None):
     if tw > CONTENT_W:
         pdf.set_font('Helvetica', 'B', 18)
         tw = pdf.get_string_width(title)
-    pdf.text(PAGE_W / 2 - tw / 2, 80, title)
+    pdf.text(PAGE_W / 2 - tw / 2, 82, title)
     # Subtitle
     if subtitle:
         pdf.set_font('Helvetica', '', 10)
         pdf.set_text_color(*LIGHT_GRAY)
         tw = pdf.get_string_width(subtitle)
-        pdf.text(PAGE_W / 2 - tw / 2, 90, subtitle)
-    # Graphic
+        pdf.text(PAGE_W / 2 - tw / 2, 92, subtitle)
+    # Main graphic - centered on chapter divider page
     if graphic_func:
-        graphic_func(pdf, PAGE_W / 2, 150, 60)
-    # Decorative bottom elements
-    draw_gold_coin(pdf, 30, PAGE_H - 40, 8)
-    draw_gold_coin(pdf, PAGE_W - 30, PAGE_H - 40, 8)
+        graphic_func(pdf, PAGE_W / 2, 155, 65)
+    # Bottom decorative coins
+    draw_gold_coin(pdf, 30, PAGE_H - 40, 9)
+    draw_gold_coin(pdf, PAGE_W - 30, PAGE_H - 40, 9)
     # Bottom line
     pdf.set_draw_color(*GOLD)
-    pdf.set_line_width(0.5)
+    pdf.set_line_width(0.6)
     pdf.line(MARGIN, PAGE_H - 25, PAGE_W - MARGIN, PAGE_H - 25)
+    pdf.set_line_width(0.2)
+    pdf.line(MARGIN + 10, PAGE_H - 23, PAGE_W - MARGIN - 10, PAGE_H - 23)
+
 
 
 def write_body_text(pdf, text, y_pos, font_size=9):
@@ -537,17 +774,16 @@ def generate_ebook():
     page_count = 0
 
     # ========================================================
-    # PAGE 1: COVER
+    # PAGE 1: COVER (full gradient - graphics anywhere OK)
     # ========================================================
     pdf.add_page()
     page_count += 1
-    # Full gradient background
     draw_gradient_rect(pdf, 0, 0, PAGE_W, PAGE_H, (5, 5, 30), (0, 0, 0), 80)
     # Gold border frame
     pdf.set_draw_color(*GOLD)
-    pdf.set_line_width(2)
+    pdf.set_line_width(2.5)
     pdf.rect(8, 8, PAGE_W - 16, PAGE_H - 16, 'D')
-    pdf.set_line_width(0.5)
+    pdf.set_line_width(0.6)
     pdf.rect(12, 12, PAGE_W - 24, PAGE_H - 24, 'D')
     # Top decorative coins
     for i in range(5):
@@ -568,6 +804,8 @@ def generate_ebook():
     title3 = "BLUEPRINT"
     tw = pdf.get_string_width(title3)
     pdf.text(PAGE_W / 2 - tw / 2, 150, title3)
+
+
     # Subtitle
     pdf.set_font('Helvetica', '', 11)
     pdf.set_text_color(*WHITE)
@@ -587,21 +825,21 @@ def generate_ebook():
     tw = pdf.get_string_width(bot_text)
     pdf.text(PAGE_W / 2 - tw / 2, 280, bot_text)
 
-
-
     # ========================================================
-    # PAGE 2: TABLE OF CONTENTS
+    # PAGE 2: TABLE OF CONTENTS (content page)
     # ========================================================
     pdf.add_page()
     page_count += 1
+    # Header area (y=0 to 55)
     draw_gradient_rect(pdf, 0, 0, PAGE_W, 50, DEEP_BLUE, DARK_BG, 20)
     pdf.set_font('Helvetica', 'B', 20)
     pdf.set_text_color(*WHITE)
     pdf.text(MARGIN, 35, "TABLE OF CONTENTS")
-    draw_page_decoration(pdf, page_count)
-    # Decorative element
     draw_diamond(pdf, PAGE_W - 35, 30, 25)
+    draw_page_decoration(pdf, page_count)
 
+
+    # Content area (y=60 to 260) - TEXT ONLY, no graphics
     chapters = [
         ("1", "The AI Wealth Revolution", "3"),
         ("2", "Understanding Claude's Superpowers", "6"),
@@ -619,42 +857,39 @@ def generate_ebook():
         ("14", "Your 90-Day Action Plan", "52"),
         ("", "Final Words", "55"),
     ]
-    y = 60
+    y = 62
     for num, title, pg in chapters:
         pdf.set_font('Helvetica', 'B', 10)
         pdf.set_text_color(*DARK_BG)
         label = f"Chapter {num}: {title}" if num else title
         pdf.text(MARGIN + 5, y, label)
-        # Dots
         pdf.set_font('Helvetica', '', 8)
         pdf.set_text_color(*LIGHT_GRAY)
         dots = '.' * 60
         pdf.text(MARGIN + 80, y, dots[:40])
-        # Page number
         pdf.set_font('Helvetica', 'B', 10)
         pdf.set_text_color(*ACCENT_BLUE)
         pdf.text(PAGE_W - MARGIN - 10, y, pg)
-        y += 14
-    # Bottom graphic
-    draw_chart_up(pdf, PAGE_W / 2, PAGE_H - 50, 40)
+        y += 13
 
 
 
     # ========================================================
     # CHAPTER 1: The AI Wealth Revolution (3 pages)
     # ========================================================
-    # Page 3 - Chapter header
+    # Page 3 - Chapter header (full gradient, graphics OK)
     pdf.add_page()
     page_count += 1
     add_chapter_header(pdf, 1, "The AI Wealth Revolution",
                        "Why NOW is the greatest wealth opportunity in history", draw_chart_up)
 
-    # Page 4
+    # Page 4 - Content page
     pdf.add_page()
     page_count += 1
     draw_gradient_rect(pdf, 0, 0, PAGE_W, 15, DEEP_BLUE, (240, 240, 250), 15)
     draw_page_decoration(pdf, page_count)
-    draw_money_stack(pdf, PAGE_W - 40, 45, 30)
+    # Header graphic (y < 55 only)
+    draw_header_graphic(pdf, draw_money_stack, 28)
     y = 25
     pdf.set_font('Helvetica', 'B', 14)
     pdf.set_text_color(*DEEP_BLUE)
@@ -686,15 +921,15 @@ def generate_ebook():
              "building moats that will be nearly impossible to replicate in 2-3 years. "
              "This blueprint gives you the exact roadmap to capitalize on this revolution.")
     y = write_body_text(pdf, text2, y)
-    # Bottom chart graphic
-    draw_chart_up(pdf, PAGE_W / 2, PAGE_H - 55, 45)
 
-    # Page 5
+
+
+    # Page 5 - Content page
     pdf.add_page()
     page_count += 1
     draw_gradient_rect(pdf, 0, 0, PAGE_W, 15, DEEP_BLUE, (240, 240, 250), 15)
     draw_page_decoration(pdf, page_count)
-    draw_rocket(pdf, PAGE_W - 35, 50, 30)
+    draw_header_graphic(pdf, draw_rocket, 28)
     y = 25
     pdf.set_font('Helvetica', 'B', 14)
     pdf.set_text_color(*DEEP_BLUE)
@@ -724,9 +959,6 @@ def generate_ebook():
     text3 = ("This blueprint will show you exactly how to leverage Claude across 7 proven "
              "business models, with real prompts you can copy and use today.")
     y = write_body_text(pdf, text3, y)
-    draw_brain_ai(pdf, PAGE_W / 2, PAGE_H - 55, 40)
-
-
 
     # ========================================================
     # CHAPTER 2: Understanding Claude's Superpowers (3 pages)
@@ -735,12 +967,14 @@ def generate_ebook():
     page_count += 1
     add_chapter_header(pdf, 2, "Understanding Claude's", "Superpowers", draw_brain_ai)
 
-    # Page 7
+
+
+    # Page 7 - Content page
     pdf.add_page()
     page_count += 1
     draw_gradient_rect(pdf, 0, 0, PAGE_W, 15, ACCENT_PURPLE, (245, 240, 255), 15)
     draw_page_decoration(pdf, page_count)
-    draw_brain_ai(pdf, PAGE_W - 35, 40, 28)
+    draw_header_graphic(pdf, draw_brain_ai, 26)
     y = 25
     pdf.set_font('Helvetica', 'B', 14)
     pdf.set_text_color(*DEEP_BLUE)
@@ -768,13 +1002,15 @@ def generate_ebook():
         pdf.set_text_color(60, 60, 80)
         pdf.text(MARGIN + 10, y, cap_desc)
         y += 6
-    draw_network(pdf, PAGE_W / 2, PAGE_H - 50, 35)
 
-    # Page 8
+
+
+    # Page 8 - Content page
     pdf.add_page()
     page_count += 1
     draw_gradient_rect(pdf, 0, 0, PAGE_W, 15, ACCENT_PURPLE, (245, 240, 255), 15)
     draw_page_decoration(pdf, page_count)
+    draw_header_graphic(pdf, draw_lightbulb, 25)
     y = 25
     pdf.set_font('Helvetica', 'B', 14)
     pdf.set_text_color(*DEEP_BLUE)
@@ -785,7 +1021,6 @@ def generate_ebook():
             "because they know how to extract maximum value from every interaction.")
     y = write_body_text(pdf, text, y)
     y += 3
-    # Example prompt
     prompt = ("You are an expert [ROLE]. I need you to [TASK].\n"
               "Context: [BACKGROUND INFORMATION]\n"
               "Requirements:\n"
@@ -799,9 +1034,6 @@ def generate_ebook():
     text2 = ("This framework alone will improve your Claude outputs by 10x. Each chapter "
              "in this book provides specialized prompts built on this foundation.")
     y = write_body_text(pdf, text2, y)
-    draw_lightbulb(pdf, PAGE_W - 35, PAGE_H - 50, 30)
-
-
 
     # ========================================================
     # CHAPTER 3: Service Arbitrage Model (4 pages)
@@ -811,12 +1043,14 @@ def generate_ebook():
     add_chapter_header(pdf, 3, "Service Arbitrage Model",
                        "Sell human services, deliver with AI", draw_money_stack)
 
-    # Page 10
+
+
+    # Page 10 - Content page
     pdf.add_page()
     page_count += 1
     draw_gradient_rect(pdf, 0, 0, PAGE_W, 15, (0, 80, 0), (240, 255, 240), 15)
     draw_page_decoration(pdf, page_count)
-    draw_money_stack(pdf, PAGE_W - 40, 45, 28)
+    draw_header_graphic(pdf, draw_money_stack, 26)
     y = 25
     pdf.set_font('Helvetica', 'B', 14)
     pdf.set_text_color(*DEEP_BLUE)
@@ -848,12 +1082,14 @@ def generate_ebook():
               "their business to show I've done research.")
     y = draw_prompt_box(pdf, y, "Client Outreach Prompt", prompt, ACCENT_GREEN)
 
-    # Page 11
+
+
+    # Page 11 - Content page
     pdf.add_page()
     page_count += 1
     draw_gradient_rect(pdf, 0, 0, PAGE_W, 15, (0, 80, 0), (240, 255, 240), 15)
     draw_page_decoration(pdf, page_count)
-    draw_target(pdf, PAGE_W - 35, 40, 28)
+    draw_header_graphic(pdf, draw_target, 26)
     y = 25
     pdf.set_font('Helvetica', 'B', 14)
     pdf.set_text_color(*DEEP_BLUE)
@@ -882,13 +1118,13 @@ def generate_ebook():
                "- Clear CTA for booking a consultation\n"
                "Tone: Confident, results-focused, specific numbers.")
     y = draw_prompt_box(pdf, y, "Portfolio Builder Prompt", prompt2, TEAL)
-    draw_chart_up(pdf, PAGE_W / 2, PAGE_H - 45, 35)
 
-    # Page 12
+    # Page 12 - Content page
     pdf.add_page()
     page_count += 1
     draw_gradient_rect(pdf, 0, 0, PAGE_W, 15, (0, 80, 0), (240, 255, 240), 15)
     draw_page_decoration(pdf, page_count)
+    draw_header_graphic(pdf, draw_chart_up, 26)
     y = 25
     pdf.set_font('Helvetica', 'B', 14)
     pdf.set_text_color(*DEEP_BLUE)
@@ -919,9 +1155,6 @@ def generate_ebook():
                "For each tier, suggest: name, price, deliverables,\n"
                "turnaround time, and positioning strategy.")
     y = draw_prompt_box(pdf, y, "Pricing Strategy Prompt", prompt3, GOLD)
-    draw_money_stack(pdf, PAGE_W / 2, PAGE_H - 45, 30)
-    draw_gold_coin(pdf, 30, PAGE_H - 40, 10)
-    draw_gold_coin(pdf, PAGE_W - 30, PAGE_H - 40, 10)
 
 
 
@@ -933,12 +1166,12 @@ def generate_ebook():
     add_chapter_header(pdf, 4, "Building Micro-SaaS",
                        "Launch profitable software products with Claude", draw_laptop)
 
-    # Page 14
+    # Page 14 - Content page
     pdf.add_page()
     page_count += 1
     draw_gradient_rect(pdf, 0, 0, PAGE_W, 15, (0, 50, 100), (235, 245, 255), 15)
     draw_page_decoration(pdf, page_count)
-    draw_laptop(pdf, PAGE_W - 40, 45, 30)
+    draw_header_graphic(pdf, draw_laptop, 28)
     y = 25
     pdf.set_font('Helvetica', 'B', 14)
     pdf.set_text_color(*DEEP_BLUE)
@@ -975,12 +1208,14 @@ def generate_ebook():
               "Give a 1-10 viability score with reasoning.")
     y = draw_prompt_box(pdf, y, "SaaS Idea Validator", prompt, ACCENT_BLUE)
 
-    # Page 15
+
+
+    # Page 15 - Content page
     pdf.add_page()
     page_count += 1
     draw_gradient_rect(pdf, 0, 0, PAGE_W, 15, (0, 50, 100), (235, 245, 255), 15)
     draw_page_decoration(pdf, page_count)
-    draw_gear_system(pdf, PAGE_W - 40, 45, 30)
+    draw_header_graphic(pdf, draw_gear_system, 28)
     y = 25
     pdf.set_font('Helvetica', 'B', 14)
     pdf.set_text_color(*DEEP_BLUE)
@@ -1007,13 +1242,13 @@ def generate_ebook():
     text2 = ("Pro tip: Break your app into modules and have Claude generate each one "
              "separately. This produces better code quality and makes debugging easier.")
     y = write_body_text(pdf, text2, y)
-    draw_laptop(pdf, PAGE_W / 2, PAGE_H - 50, 35)
 
-    # Page 16
+    # Page 16 - Content page
     pdf.add_page()
     page_count += 1
     draw_gradient_rect(pdf, 0, 0, PAGE_W, 15, (0, 50, 100), (235, 245, 255), 15)
     draw_page_decoration(pdf, page_count)
+    draw_header_graphic(pdf, draw_rocket, 26)
     y = 25
     pdf.set_font('Helvetica', 'B', 14)
     pdf.set_text_color(*DEEP_BLUE)
@@ -1041,8 +1276,6 @@ def generate_ebook():
                "timing strategy, and community engagement plan.\n"
                "Also create 5 tweet templates for launch day.")
     y = draw_prompt_box(pdf, y, "Product Launch Prompt", prompt3, ORANGE)
-    draw_rocket(pdf, PAGE_W / 2, PAGE_H - 50, 35)
-    draw_chart_up(pdf, 35, PAGE_H - 45, 28)
 
 
 
@@ -1054,12 +1287,12 @@ def generate_ebook():
     add_chapter_header(pdf, 5, "Content Empire Building",
                        "Build audiences and monetize with AI content", draw_lightbulb)
 
-    # Page 18
+    # Page 18 - Content page
     pdf.add_page()
     page_count += 1
     draw_gradient_rect(pdf, 0, 0, PAGE_W, 15, (100, 0, 100), (255, 240, 255), 15)
     draw_page_decoration(pdf, page_count)
-    draw_lightbulb(pdf, PAGE_W - 35, 40, 28)
+    draw_header_graphic(pdf, draw_lightbulb, 25)
     y = 25
     pdf.set_font('Helvetica', 'B', 14)
     pdf.set_text_color(*DEEP_BLUE)
@@ -1094,11 +1327,14 @@ def generate_ebook():
               "Include viral content formulas for maximum engagement.")
     y = draw_prompt_box(pdf, y, "Content Calendar Generator", prompt, ACCENT_PURPLE)
 
-    # Page 19
+
+
+    # Page 19 - Content page
     pdf.add_page()
     page_count += 1
     draw_gradient_rect(pdf, 0, 0, PAGE_W, 15, (100, 0, 100), (255, 240, 255), 15)
     draw_page_decoration(pdf, page_count)
+    draw_header_graphic(pdf, draw_network, 26)
     y = 25
     pdf.set_font('Helvetica', 'B', 14)
     pdf.set_text_color(*DEEP_BLUE)
@@ -1124,14 +1360,13 @@ def generate_ebook():
     text2 = ("Results: Our case study shows 100 AI-written articles generating "
              "150,000 monthly visitors and $8,500/month in ad + affiliate revenue.")
     y = write_body_text(pdf, text2, y)
-    draw_chart_up(pdf, PAGE_W / 2, PAGE_H - 50, 35)
 
-    # Page 20
+    # Page 20 - Content page
     pdf.add_page()
     page_count += 1
     draw_gradient_rect(pdf, 0, 0, PAGE_W, 15, (100, 0, 100), (255, 240, 255), 15)
     draw_page_decoration(pdf, page_count)
-    draw_network(pdf, PAGE_W - 40, 45, 28)
+    draw_header_graphic(pdf, draw_diamond, 24)
     y = 25
     pdf.set_font('Helvetica', 'B', 14)
     pdf.set_text_color(*DEEP_BLUE)
@@ -1153,8 +1388,6 @@ def generate_ebook():
                "Email 5: Urgency close (limited offer)\n"
                "Include subject lines with 40%+ open rate potential.")
     y = draw_prompt_box(pdf, y, "Email Sequence Writer", prompt3, ORANGE)
-    draw_money_stack(pdf, 35, PAGE_H - 45, 25)
-    draw_lightbulb(pdf, PAGE_W - 35, PAGE_H - 45, 25)
 
 
 
@@ -1166,12 +1399,12 @@ def generate_ebook():
     add_chapter_header(pdf, 6, "AI Automation Agency",
                        "Build systems that make businesses run on autopilot", draw_gear_system)
 
-    # Page 22
+    # Page 22 - Content page
     pdf.add_page()
     page_count += 1
     draw_gradient_rect(pdf, 0, 0, PAGE_W, 15, (0, 60, 80), (235, 250, 255), 15)
     draw_page_decoration(pdf, page_count)
-    draw_gear_system(pdf, PAGE_W - 40, 45, 30)
+    draw_header_graphic(pdf, draw_gear_system, 28)
     y = 25
     pdf.set_font('Helvetica', 'B', 14)
     pdf.set_text_color(*DEEP_BLUE)
@@ -1208,11 +1441,14 @@ def generate_ebook():
               "Goal: Handle 80% of tickets without human intervention.")
     y = draw_prompt_box(pdf, y, "Customer Support Bot Builder", prompt, TEAL)
 
-    # Page 23
+
+
+    # Page 23 - Content page
     pdf.add_page()
     page_count += 1
     draw_gradient_rect(pdf, 0, 0, PAGE_W, 15, (0, 60, 80), (235, 250, 255), 15)
     draw_page_decoration(pdf, page_count)
+    draw_header_graphic(pdf, draw_network, 26)
     y = 25
     pdf.set_font('Helvetica', 'B', 14)
     pdf.set_text_color(*DEEP_BLUE)
@@ -1249,12 +1485,14 @@ def generate_ebook():
                "5) ROI calculation (cost vs time saved)")
     y = draw_prompt_box(pdf, y, "Automation Audit Prompt", prompt2, ACCENT_BLUE)
 
-    # Page 24
+
+
+    # Page 24 - Content page
     pdf.add_page()
     page_count += 1
     draw_gradient_rect(pdf, 0, 0, PAGE_W, 15, (0, 60, 80), (235, 250, 255), 15)
     draw_page_decoration(pdf, page_count)
-    draw_shield(pdf, PAGE_W - 35, 40, 28)
+    draw_header_graphic(pdf, draw_shield, 26)
     y = 25
     pdf.set_font('Helvetica', 'B', 14)
     pdf.set_text_color(*DEEP_BLUE)
@@ -1281,11 +1519,6 @@ def generate_ebook():
              "tracking data. Clients love seeing consistent ROI proof, and it reduces "
              "churn significantly. Aim for 95%+ client retention rate.")
     y = write_body_text(pdf, text2, y)
-    draw_gear_system(pdf, PAGE_W / 2, PAGE_H - 50, 35)
-    draw_gold_coin(pdf, 30, PAGE_H - 35, 8)
-    draw_gold_coin(pdf, PAGE_W - 30, PAGE_H - 35, 8)
-
-
 
     # ========================================================
     # CHAPTER 7: Prompt Engineering as a Service (4 pages)
@@ -1294,12 +1527,14 @@ def generate_ebook():
     page_count += 1
     add_chapter_header(pdf, 7, "Prompt Engineering", "as a Service", draw_lightbulb)
 
-    # Page 26
+
+
+    # Page 26 - Content page
     pdf.add_page()
     page_count += 1
     draw_gradient_rect(pdf, 0, 0, PAGE_W, 15, (80, 0, 120), (250, 240, 255), 15)
     draw_page_decoration(pdf, page_count)
-    draw_lightbulb(pdf, PAGE_W - 35, 40, 28)
+    draw_header_graphic(pdf, draw_lightbulb, 25)
     y = 25
     pdf.set_font('Helvetica', 'B', 14)
     pdf.set_text_color(*DEEP_BLUE)
@@ -1338,12 +1573,14 @@ def generate_ebook():
               "Show the before/after with explanation of changes.")
     y = draw_prompt_box(pdf, y, "Prompt Optimizer (Meta-Prompt)", prompt, ACCENT_PURPLE)
 
-    # Page 27
+
+
+    # Page 27 - Content page
     pdf.add_page()
     page_count += 1
     draw_gradient_rect(pdf, 0, 0, PAGE_W, 15, (80, 0, 120), (250, 240, 255), 15)
     draw_page_decoration(pdf, page_count)
-    draw_diamond(pdf, PAGE_W - 35, 40, 28)
+    draw_header_graphic(pdf, draw_diamond, 25)
     y = 25
     pdf.set_font('Helvetica', 'B', 14)
     pdf.set_text_color(*DEEP_BLUE)
@@ -1376,11 +1613,12 @@ def generate_ebook():
                "output format, quality criteria, and example output.")
     y = draw_prompt_box(pdf, y, "Sales Prompt Library Builder", prompt2, TEAL)
 
-    # Page 28
+    # Page 28 - Content page
     pdf.add_page()
     page_count += 1
     draw_gradient_rect(pdf, 0, 0, PAGE_W, 15, (80, 0, 120), (250, 240, 255), 15)
     draw_page_decoration(pdf, page_count)
+    draw_header_graphic(pdf, draw_brain_ai, 24)
     y = 25
     pdf.set_font('Helvetica', 'B', 14)
     pdf.set_text_color(*DEEP_BLUE)
@@ -1406,9 +1644,6 @@ def generate_ebook():
              "AI workflows that transform entire business processes. Position yourself "
              "as an 'AI Transformation Consultant' and command premium pricing.")
     y = write_body_text(pdf, text2, y)
-    draw_lightbulb(pdf, 35, PAGE_H - 50, 28)
-    draw_brain_ai(pdf, PAGE_W / 2, PAGE_H - 50, 30)
-    draw_diamond(pdf, PAGE_W - 35, PAGE_H - 50, 25)
 
 
 
@@ -1419,12 +1654,12 @@ def generate_ebook():
     page_count += 1
     add_chapter_header(pdf, 8, "Digital Products &", "Templates", draw_diamond)
 
-    # Page 30
+    # Page 30 - Content page
     pdf.add_page()
     page_count += 1
     draw_gradient_rect(pdf, 0, 0, PAGE_W, 15, (100, 50, 0), (255, 248, 235), 15)
     draw_page_decoration(pdf, page_count)
-    draw_diamond(pdf, PAGE_W - 35, 40, 28)
+    draw_header_graphic(pdf, draw_diamond, 25)
     y = 25
     pdf.set_font('Helvetica', 'B', 14)
     pdf.set_text_color(*DEEP_BLUE)
@@ -1458,14 +1693,17 @@ def generate_ebook():
               "For each module provide: title, learning objectives,\n"
               "3-5 lessons, assignments, and resources.\n"
               "Include a bonus module and upsell opportunity.\n"
-              "Pricing strategy: $197 self-paced, $497 with coaching.")
+              "Optimize for completion rate and student success.")
     y = draw_prompt_box(pdf, y, "Course Outline Creator", prompt, ORANGE)
 
-    # Page 31
+
+
+    # Page 31 - Content page
     pdf.add_page()
     page_count += 1
     draw_gradient_rect(pdf, 0, 0, PAGE_W, 15, (100, 50, 0), (255, 248, 235), 15)
     draw_page_decoration(pdf, page_count)
+    draw_header_graphic(pdf, draw_money_stack, 25)
     y = 25
     pdf.set_font('Helvetica', 'B', 14)
     pdf.set_text_color(*DEEP_BLUE)
@@ -1497,9 +1735,6 @@ def generate_ebook():
                "Use proven copywriting frameworks (PAS, AIDA).\n"
                "Tone: Authoritative but friendly. Use power words.")
     y = draw_prompt_box(pdf, y, "Sales Page Writer", prompt2, RED)
-    draw_money_stack(pdf, PAGE_W / 2, PAGE_H - 45, 30)
-
-
 
     # ========================================================
     # CHAPTER 9: The API Economy (3 pages)
@@ -1509,12 +1744,14 @@ def generate_ebook():
     add_chapter_header(pdf, 9, "The API Economy",
                        "Build and monetize AI-powered APIs", draw_network)
 
-    # Page 33
+
+
+    # Page 33 - Content page
     pdf.add_page()
     page_count += 1
     draw_gradient_rect(pdf, 0, 0, PAGE_W, 15, (0, 40, 80), (235, 245, 255), 15)
     draw_page_decoration(pdf, page_count)
-    draw_network(pdf, PAGE_W - 40, 45, 30)
+    draw_header_graphic(pdf, draw_network, 28)
     y = 25
     pdf.set_font('Helvetica', 'B', 14)
     pdf.set_text_color(*DEEP_BLUE)
@@ -1553,12 +1790,14 @@ def generate_ebook():
               "Python, JavaScript, and cURL.")
     y = draw_prompt_box(pdf, y, "API Documentation Writer", prompt, ACCENT_BLUE)
 
-    # Page 34
+
+
+    # Page 34 - Content page
     pdf.add_page()
     page_count += 1
     draw_gradient_rect(pdf, 0, 0, PAGE_W, 15, (0, 40, 80), (235, 245, 255), 15)
     draw_page_decoration(pdf, page_count)
-    draw_laptop(pdf, PAGE_W - 40, 45, 30)
+    draw_header_graphic(pdf, draw_laptop, 28)
     y = 25
     pdf.set_font('Helvetica', 'B', 14)
     pdf.set_text_color(*DEEP_BLUE)
@@ -1594,10 +1833,6 @@ def generate_ebook():
     ]
     for item in revenue_items:
         y = write_bullet_point(pdf, item, y, GOLD)
-    draw_chart_up(pdf, PAGE_W / 2, PAGE_H - 50, 38)
-    draw_network(pdf, 35, PAGE_H - 45, 25)
-
-
 
     # ========================================================
     # CHAPTER 10: Scaling to Seven Figures (3 pages)
@@ -1607,12 +1842,14 @@ def generate_ebook():
     add_chapter_header(pdf, 10, "Scaling to Seven Figures",
                        "The roadmap from $10K to $100K/month", draw_rocket)
 
-    # Page 36
+
+
+    # Page 36 - Content page
     pdf.add_page()
     page_count += 1
     draw_gradient_rect(pdf, 0, 0, PAGE_W, 15, (80, 0, 0), (255, 240, 240), 15)
     draw_page_decoration(pdf, page_count)
-    draw_rocket(pdf, PAGE_W - 35, 50, 30)
+    draw_header_graphic(pdf, draw_rocket, 28)
     y = 25
     pdf.set_font('Helvetica', 'B', 14)
     pdf.set_text_color(*DEEP_BLUE)
@@ -1647,14 +1884,15 @@ def generate_ebook():
     ]
     for lever in levers:
         y = write_bullet_point(pdf, lever, y, ACCENT_BLUE)
-    draw_chart_up(pdf, PAGE_W / 2, PAGE_H - 50, 40)
 
-    # Page 37
+
+
+    # Page 37 - Content page
     pdf.add_page()
     page_count += 1
     draw_gradient_rect(pdf, 0, 0, PAGE_W, 15, (80, 0, 0), (255, 240, 240), 15)
     draw_page_decoration(pdf, page_count)
-    draw_target(pdf, PAGE_W - 35, 40, 28)
+    draw_header_graphic(pdf, draw_target, 26)
     y = 25
     pdf.set_font('Helvetica', 'B', 14)
     pdf.set_text_color(*DEEP_BLUE)
@@ -1680,11 +1918,6 @@ def generate_ebook():
              "2) Group coaching ($3K-8K/month), 3) Digital products ($2K-5K/month), "
              "4) SaaS tools ($5K-20K/month), 5) Affiliate income ($1K-3K/month).")
     y = write_body_text(pdf, text2, y)
-    draw_money_stack(pdf, 35, PAGE_H - 45, 28)
-    draw_rocket(pdf, PAGE_W / 2, PAGE_H - 50, 30)
-    draw_gold_coin(pdf, PAGE_W - 30, PAGE_H - 35, 10)
-
-
 
     # ========================================================
     # CHAPTER 11: Advanced Claude Techniques (4 pages)
@@ -1694,12 +1927,14 @@ def generate_ebook():
     add_chapter_header(pdf, 11, "Advanced Claude Techniques",
                        "Master-level prompting for maximum output", draw_brain_ai)
 
-    # Page 39
+
+
+    # Page 39 - Content page
     pdf.add_page()
     page_count += 1
     draw_gradient_rect(pdf, 0, 0, PAGE_W, 15, (0, 0, 80), (235, 235, 255), 15)
     draw_page_decoration(pdf, page_count)
-    draw_brain_ai(pdf, PAGE_W - 35, 45, 28)
+    draw_header_graphic(pdf, draw_brain_ai, 26)
     y = 25
     pdf.set_font('Helvetica', 'B', 14)
     pdf.set_text_color(*DEEP_BLUE)
@@ -1728,14 +1963,13 @@ def generate_ebook():
     text2 = ("This structured approach consistently produces consultant-quality "
              "analysis that you can deliver to clients or use for your own decisions.")
     y = write_body_text(pdf, text2, y)
-    draw_network(pdf, PAGE_W / 2, PAGE_H - 45, 30)
 
-    # Page 40
+    # Page 40 - Content page
     pdf.add_page()
     page_count += 1
     draw_gradient_rect(pdf, 0, 0, PAGE_W, 15, (0, 0, 80), (235, 235, 255), 15)
     draw_page_decoration(pdf, page_count)
-    draw_gear_system(pdf, PAGE_W - 40, 45, 30)
+    draw_header_graphic(pdf, draw_gear_system, 28)
     y = 25
     pdf.set_font('Helvetica', 'B', 14)
     pdf.set_text_color(*DEEP_BLUE)
@@ -1762,14 +1996,15 @@ def generate_ebook():
                "\n"
                "End with a synthesis combining all three perspectives.")
     y = draw_prompt_box(pdf, y, "Multi-Perspective Analyzer", prompt2, ACCENT_PURPLE)
-    draw_brain_ai(pdf, 35, PAGE_H - 45, 25)
-    draw_lightbulb(pdf, PAGE_W - 35, PAGE_H - 45, 25)
 
-    # Page 41
+
+
+    # Page 41 - Content page
     pdf.add_page()
     page_count += 1
     draw_gradient_rect(pdf, 0, 0, PAGE_W, 15, (0, 0, 80), (235, 235, 255), 15)
     draw_page_decoration(pdf, page_count)
+    draw_header_graphic(pdf, draw_chart_up, 26)
     y = 25
     pdf.set_font('Helvetica', 'B', 14)
     pdf.set_text_color(*DEEP_BLUE)
@@ -1798,10 +2033,6 @@ def generate_ebook():
     text2 = ("Pro tip: Pair this with Python data processing to handle large datasets. "
              "Claude can write the analysis code AND interpret the results.")
     y = write_body_text(pdf, text2, y)
-    draw_chart_up(pdf, PAGE_W / 2, PAGE_H - 50, 38)
-    draw_laptop(pdf, 35, PAGE_H - 45, 25)
-
-
 
     # ========================================================
     # CHAPTER 12: Live Prompt Library (6 pages)
@@ -1811,7 +2042,9 @@ def generate_ebook():
     add_chapter_header(pdf, 12, "Live Prompt Library",
                        "20+ ready-to-use prompts for every business model", draw_lightbulb)
 
-    # Page 43 - Prompts 1-4
+
+
+    # Page 43 - Prompts 1-3
     pdf.add_page()
     page_count += 1
     draw_gradient_rect(pdf, 0, 0, PAGE_W, 15, (0, 80, 50), (235, 255, 245), 15)
@@ -1821,7 +2054,6 @@ def generate_ebook():
     pdf.set_text_color(*DEEP_BLUE)
     pdf.text(MARGIN, y, "Business Growth Prompts")
     y += 8
-    draw_gold_coin(pdf, PAGE_W - 25, 18, 8)
 
     p1 = ("Write a business plan executive summary for [BUSINESS].\n"
            "Include: value proposition, target market ($TAM),\n"
@@ -1847,7 +2079,7 @@ def generate_ebook():
            "Optimize for retention: open loops, curiosity gaps.")
     y = draw_prompt_box(pdf, y, "YouTube Script Writer", p3, RED)
 
-    # Page 44 - Prompts 5-8
+    # Page 44 - Prompts 4-6
     pdf.add_page()
     page_count += 1
     draw_gradient_rect(pdf, 0, 0, PAGE_W, 15, (0, 80, 50), (235, 255, 245), 15)
@@ -1857,7 +2089,6 @@ def generate_ebook():
     pdf.set_text_color(*DEEP_BLUE)
     pdf.text(MARGIN, y, "Content & Marketing Prompts")
     y += 8
-    draw_lightbulb(pdf, PAGE_W - 30, 20, 20)
 
     p4 = ("Write a weekly newsletter edition that converts readers.\n"
            "Topic: [THIS WEEK'S TOPIC]\n"
@@ -1888,7 +2119,9 @@ def generate_ebook():
            "Mix: educational, entertaining, promotional, UGC prompts.")
     y = draw_prompt_box(pdf, y, "Social Media Manager", p6, TEAL)
 
-    # Page 45 - Prompts 9-12
+
+
+    # Page 45 - Prompts 7-9
     pdf.add_page()
     page_count += 1
     draw_gradient_rect(pdf, 0, 0, PAGE_W, 15, (0, 80, 50), (235, 255, 245), 15)
@@ -1898,7 +2131,6 @@ def generate_ebook():
     pdf.set_text_color(*DEEP_BLUE)
     pdf.text(MARGIN, y, "Technical & Operations Prompts")
     y += 8
-    draw_laptop(pdf, PAGE_W - 30, 20, 22)
 
     p7 = ("Analyze this meeting transcript and extract:\n"
            "[PASTE TRANSCRIPT OR KEY POINTS]\n"
@@ -1936,7 +2168,7 @@ def generate_ebook():
 
 
 
-    # Page 46 - Prompts 13-16
+    # Page 46 - Prompts 10-12
     pdf.add_page()
     page_count += 1
     draw_gradient_rect(pdf, 0, 0, PAGE_W, 15, (0, 80, 50), (235, 255, 245), 15)
@@ -1946,7 +2178,6 @@ def generate_ebook():
     pdf.set_text_color(*DEEP_BLUE)
     pdf.text(MARGIN, y, "Revenue & Automation Prompts")
     y += 8
-    draw_money_stack(pdf, PAGE_W - 30, 25, 22)
 
     p10 = ("Build a complete sales funnel strategy for [PRODUCT].\n"
             "Price point: $[PRICE]\n"
@@ -1979,7 +2210,7 @@ def generate_ebook():
             "Target conversion rate: 5-15% of attendees.")
     y = draw_prompt_box(pdf, y, "Webinar Script Creator", p12, ORANGE)
 
-    # Page 47 - Prompts 17-20
+    # Page 47 - Prompts 13-15
     pdf.add_page()
     page_count += 1
     draw_gradient_rect(pdf, 0, 0, PAGE_W, 15, (0, 80, 50), (235, 255, 245), 15)
@@ -1989,7 +2220,6 @@ def generate_ebook():
     pdf.set_text_color(*DEEP_BLUE)
     pdf.text(MARGIN, y, "Advanced Business Prompts")
     y += 8
-    draw_diamond(pdf, PAGE_W - 25, 18, 18)
 
     p13 = ("Create an affiliate program structure for [PRODUCT].\n"
             "Product price: $[PRICE]\n"
@@ -2022,7 +2252,6 @@ def generate_ebook():
             "For each hire: role, job description, where to find,\n"
             "compensation range, and onboarding checklist.")
     y = draw_prompt_box(pdf, y, "Delegation Framework", p15, ACCENT_BLUE)
-    draw_gear_system(pdf, PAGE_W / 2, PAGE_H - 40, 30)
 
 
 
@@ -2039,17 +2268,17 @@ def generate_ebook():
     page_count += 1
     draw_gradient_rect(pdf, 0, 0, PAGE_W, 15, (0, 60, 0), (240, 255, 240), 15)
     draw_page_decoration(pdf, page_count)
-    y = 20
+    draw_header_graphic(pdf, draw_chart_up, 24)
+    y = 25
     pdf.set_font('Helvetica', 'B', 14)
     pdf.set_text_color(*DEEP_BLUE)
     pdf.text(MARGIN, y, "From Zero to Life-Changing Income")
     y += 10
-    draw_chart_up(pdf, PAGE_W - 35, 25, 25)
 
     y = draw_case_study_box(pdf, y,
         "Solo Dev to $50K/month",
         "$50K/mo",
-        "Marcus built 3 micro-SaaS tools using Claude for code generation. Tool 1: AI email warmup ($19/mo, 800 users). Tool 2: Meeting summarizer ($15/mo, 1200 users). Tool 3: Proposal generator ($49/mo, 400 users). Total build time: 6 weekends. Monthly revenue: $51,400.",
+        "Marcus built 3 micro-SaaS tools using Claude for code generation. Tool 1: AI email warmup ($19/mo, 800 users). Tool 2: Meeting summarizer ($15/mo, 1200 users). Tool 3: Proposal generator ($49/mo, 400 users). Total build time: 6 weekends.",
         "6 months from first line of code to $50K MRR")
     y += 3
 
@@ -2071,7 +2300,7 @@ def generate_ebook():
     y = draw_case_study_box(pdf, y,
         "Agency Owner: $0 to $30K in 90 Days",
         "$30K/mo",
-        "Sarah launched an AI copywriting agency with zero experience. Used Claude to deliver blog posts, email sequences, and ad copy for e-commerce brands. Started with $500 clients on Upwork, scaled to $5K retainer clients through LinkedIn outreach. Now manages 8 clients with 2 VAs.",
+        "Sarah launched an AI copywriting agency with zero experience. Used Claude to deliver blog posts, email sequences, and ad copy for e-commerce brands. Started on Upwork, scaled to $5K retainer clients through LinkedIn outreach.",
         "90 days from launch to $30K monthly revenue")
     y += 3
 
@@ -2089,22 +2318,24 @@ def generate_ebook():
     for s in strategies2:
         y = write_bullet_point(pdf, s, y, ACCENT_GREEN)
 
+
+
     # Page 50 - Case Studies 3 & 4
     pdf.add_page()
     page_count += 1
     draw_gradient_rect(pdf, 0, 0, PAGE_W, 15, (0, 60, 0), (240, 255, 240), 15)
     draw_page_decoration(pdf, page_count)
-    y = 20
+    draw_header_graphic(pdf, draw_rocket, 24)
+    y = 25
     pdf.set_font('Helvetica', 'B', 14)
     pdf.set_text_color(*DEEP_BLUE)
     pdf.text(MARGIN, y, "More Success Stories")
     y += 10
-    draw_rocket(pdf, PAGE_W - 35, 25, 25)
 
     y = draw_case_study_box(pdf, y,
         "Content Creator: 100K Subscribers in 6 Months",
         "$25K/mo",
-        "Jake started a daily newsletter about AI business opportunities. Used Claude to research, write, and optimize every edition. Grew from 0 to 100K subscribers in 6 months. Revenue: $15K/month sponsorships + $10K/month from digital product recommendations. Works 2 hours/day.",
+        "Jake started a daily newsletter about AI business opportunities. Used Claude to research, write, and optimize every edition. Grew from 0 to 100K subscribers in 6 months. Revenue: $15K/month sponsorships + $10K/month from digital products.",
         "6 months from first newsletter to 100K subscribers")
     y += 3
 
@@ -2126,7 +2357,7 @@ def generate_ebook():
     y = draw_case_study_box(pdf, y,
         "Automation Consultant: $15K/month Retainer",
         "$15K/mo",
-        "David positioned himself as an 'AI Workflow Architect' for real estate companies. Built custom automation systems using Claude API + Zapier + custom scripts. One flagship client pays $15K/month retainer for ongoing optimization. Total time: 20 hours/week across 3 clients ($45K/month total).",
+        "David positioned himself as an 'AI Workflow Architect' for real estate companies. Built custom automation systems using Claude API + Zapier + custom scripts. One flagship client pays $15K/month retainer for ongoing optimization.",
         "4 months from first client to $15K/month single retainer")
     y += 3
 
@@ -2143,19 +2374,20 @@ def generate_ebook():
     ]
     for s in strategies4:
         y = write_bullet_point(pdf, s, y, ACCENT_PURPLE)
-    draw_money_stack(pdf, PAGE_W / 2, PAGE_H - 45, 30)
+
+
 
     # Page 51 - Lessons Learned
     pdf.add_page()
     page_count += 1
     draw_gradient_rect(pdf, 0, 0, PAGE_W, 15, (0, 60, 0), (240, 255, 240), 15)
     draw_page_decoration(pdf, page_count)
-    y = 20
+    draw_header_graphic(pdf, draw_target, 24)
+    y = 25
     pdf.set_font('Helvetica', 'B', 14)
     pdf.set_text_color(*DEEP_BLUE)
     pdf.text(MARGIN, y, "Common Patterns of Success")
     y += 10
-    draw_target(pdf, PAGE_W - 35, 30, 25)
 
     text = ("After analyzing dozens of successful AI entrepreneurs, these patterns "
             "emerge consistently:")
@@ -2180,11 +2412,6 @@ def generate_ebook():
              "Those who take action within 48 hours of learning a strategy outperform "
              "those who spend weeks planning by 10x.")
     y = write_body_text(pdf, text2, y)
-    draw_rocket(pdf, 35, PAGE_H - 50, 28)
-    draw_chart_up(pdf, PAGE_W / 2, PAGE_H - 50, 35)
-    draw_diamond(pdf, PAGE_W - 35, PAGE_H - 50, 25)
-
-
 
     # ========================================================
     # CHAPTER 14: Your 90-Day Action Plan (3 pages)
@@ -2194,17 +2421,19 @@ def generate_ebook():
     add_chapter_header(pdf, 14, "Your 90-Day Action Plan",
                        "Week-by-week roadmap to your first $10K month", draw_target)
 
-    # Page 53
+
+
+    # Page 53 - Content page
     pdf.add_page()
     page_count += 1
     draw_gradient_rect(pdf, 0, 0, PAGE_W, 15, (80, 40, 0), (255, 248, 235), 15)
     draw_page_decoration(pdf, page_count)
-    y = 20
+    draw_header_graphic(pdf, draw_target, 22)
+    y = 25
     pdf.set_font('Helvetica', 'B', 14)
     pdf.set_text_color(*DEEP_BLUE)
     pdf.text(MARGIN, y, "Weeks 1-6: Foundation & First Revenue")
     y += 10
-    draw_target(pdf, PAGE_W - 35, 25, 22)
 
     text = ("This is your detailed week-by-week plan. Follow it exactly and you'll "
             "have revenue within 30 days and momentum that compounds.")
@@ -2232,25 +2461,25 @@ def generate_ebook():
         y += 4
         pdf.set_font('Helvetica', '', 8)
         pdf.set_text_color(50, 50, 70)
-        # Wrap description
         lines = [desc[i:i+85] for i in range(0, len(desc), 85)]
         for line in lines:
             pdf.text(MARGIN + 8, y, line)
             y += 3.8
         y += 2.5
-    draw_chart_up(pdf, PAGE_W / 2, PAGE_H - 40, 32)
 
-    # Page 54
+
+
+    # Page 54 - Content page
     pdf.add_page()
     page_count += 1
     draw_gradient_rect(pdf, 0, 0, PAGE_W, 15, (80, 40, 0), (255, 248, 235), 15)
     draw_page_decoration(pdf, page_count)
-    y = 20
+    draw_header_graphic(pdf, draw_rocket, 22)
+    y = 25
     pdf.set_font('Helvetica', 'B', 14)
     pdf.set_text_color(*DEEP_BLUE)
     pdf.text(MARGIN, y, "Weeks 7-12: Scale & Systemize")
     y += 10
-    draw_rocket(pdf, PAGE_W - 35, 25, 22)
 
     weeks_7_12 = [
         ("Week 7", "Launch a digital product using Chapter 8. Use existing client work "
@@ -2289,16 +2518,13 @@ def generate_ebook():
             "growing content presence, passive income stream in development, and a clear "
             "path to $30K-50K/month within 6 months.")
     y = write_body_text(pdf, text, y)
-    draw_money_stack(pdf, 35, PAGE_H - 40, 25)
-    draw_target(pdf, PAGE_W / 2, PAGE_H - 40, 25)
-    draw_gold_coin(pdf, PAGE_W - 30, PAGE_H - 35, 10)
 
 
 
     # ========================================================
     # FINAL WORDS (2 pages)
     # ========================================================
-    # Page 55
+    # Page 55 - Full gradient page (graphics OK)
     pdf.add_page()
     page_count += 1
     draw_gradient_rect(pdf, 0, 0, PAGE_W, PAGE_H, DEEP_BLUE, DARK_BG, 60)
@@ -2313,7 +2539,7 @@ def generate_ebook():
     tw = pdf.get_string_width(title)
     pdf.text(PAGE_W / 2 - tw / 2, 40, title)
 
-    # Decorative elements
+    # Decorative graphic (chapter divider page - graphics anywhere)
     draw_brain_ai(pdf, PAGE_W / 2, 75, 35)
 
     y = 105
@@ -2343,14 +2569,16 @@ def generate_ebook():
         pdf.text(MARGIN + 10, y, line)
         y += 5.5
 
-    # Bottom decorations
+    # Bottom decorations (full-gradient page, OK)
     draw_gold_coin(pdf, 30, PAGE_H - 45, 10)
     draw_gold_coin(pdf, 55, PAGE_H - 40, 8)
     draw_rocket(pdf, PAGE_W / 2, PAGE_H - 45, 28)
     draw_gold_coin(pdf, PAGE_W - 55, PAGE_H - 40, 8)
     draw_gold_coin(pdf, PAGE_W - 30, PAGE_H - 45, 10)
 
-    # Page 56 - Back cover
+
+
+    # Page 56 - Back cover (full gradient - graphics OK)
     pdf.add_page()
     page_count += 1
     draw_gradient_rect(pdf, 0, 0, PAGE_W, PAGE_H, (0, 0, 0), DEEP_BLUE, 80)
